@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>window.NEXUS_ESP=true;</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b1a">
+<title>Relay Cammand Deck</title>
+
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #070b1a;
+    --text: #eef2ff;
+    --muted: #93a0c4;
+    --line: #ffffff1c;
+    --glass: #0f1633b8;
+    --accent: #9cafff;
+    --r1: 61, 242, 207;      /* relay 1: aqua mint */
+    --r2: 255, 178, 74;      /* relay 2: solar amber */
+    --top: calc(env(safe-area-inset-top, 0px) + 10px);
+    --bot: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    --dock-h: 250px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+
+  html, body { margin: 0; }
+  body {
+    min-height: 100dvh;
+    background: var(--ink);
+    color: var(--text);
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; touch-action: manipulation; border: 0; background: none; padding: 0;
+           transition: background .25s, border-color .25s, box-shadow .25s, transform .15s, color .25s; }
+  button:active { transform: scale(.97); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+  svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8;
+        stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- Living background: reacts to relay state ---------- */
+  .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden;
+        background: radial-gradient(120% 80% at 50% -10%, #1b2556 0, transparent 60%), var(--ink); }
+  .blob { position: absolute; width: 90vmax; height: 90vmax; border-radius: 50%;
+          opacity: .2; transition: opacity 1.2s ease; will-change: transform; }
+  .b1 { left: -45vmax; top: 25%;
+        background: radial-gradient(circle, rgb(var(--r1)) 0, transparent 62%);
+        animation: d1 26s ease-in-out infinite alternate; }
+  .b2 { right: -50vmax; top: 50%;
+        background: radial-gradient(circle, rgb(var(--r2)) 0, transparent 62%);
+        animation: d2 31s ease-in-out infinite alternate; }
+  .b3 { left: 5%; top: -50vmax; opacity: .3;
+        background: radial-gradient(circle, #6b5cff 0, transparent 62%);
+        animation: d3 36s ease-in-out infinite alternate; }
+  body[data-r1="1"] .b1 { opacity: .6; }
+  body[data-r2="1"] .b2 { opacity: .6; }
+  .grid { position: absolute; inset: 0;
+          background-image: radial-gradient(#ffffff2e 1px, transparent 1.5px);
+          background-size: 26px 26px;
+          -webkit-mask: radial-gradient(75% 60% at 50% 40%, #000, transparent);
+          mask: radial-gradient(75% 60% at 50% 40%, #000, transparent); }
+  @keyframes d1 { to { transform: translate(22vmax, -16vmax) scale(1.15); } }
+  @keyframes d2 { to { transform: translate(-20vmax, -22vmax) scale(1.1); } }
+  @keyframes d3 { to { transform: translate(14vmax, 12vmax) scale(1.2); } }
+
+  /* ---------- Floating header ---------- */
+  .top { position: fixed; z-index: 20; left: 0; right: 0; top: 0;
+         padding: var(--top) 10px 0; display: flex; justify-content: center; pointer-events: none; }
+  .top-in { pointer-events: auto; width: 100%; max-width: 560px; display: flex; align-items: center; gap: 10px;
+            padding: 10px 10px 10px 18px; border-radius: 24px; background: var(--glass);
+            border: 1px solid var(--line); backdrop-filter: blur(16px) saturate(1.3);
+            -webkit-backdrop-filter: blur(16px) saturate(1.3); }
+  .brand { flex: 1; min-width: 0; }
+  .brand b { display: block; font-size: 1.2rem; letter-spacing: -.04em; }
+  .brand small { display: block; color: var(--muted); font-size: .76rem; margin-top: 2px; }
+  .pill { display: flex; align-items: center; gap: 8px; font-size: .82rem; padding: 9px 13px;
+          border-radius: 99px; background: #ffffff0d; border: 1px solid var(--line); color: #f2cc84; white-space: nowrap; }
+  .pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+                  box-shadow: 0 0 12px currentColor; }
+  .pill.ok { color: #8ae6c2; }
+  .pill.bad { color: #ffb0b9; }
+  .icon-btn { width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center;
+              background: #ffffff0d; border: 1px solid var(--line); color: var(--muted); }
+
+  /* ---------- Stage / voice deck ---------- */
+  .stage { position: relative; z-index: 1; min-height: 100dvh; display: flex; justify-content: center;
+           padding: calc(var(--top) + 96px) 16px calc(var(--dock-h) + var(--bot) + 28px); }
+  .deck { width: 100%; max-width: 560px; display: grid; gap: 20px; justify-items: center; align-content: start; text-align: center; }
+
+  .orb { width: 150px; height: 150px; border-radius: 50%; position: relative; display: grid; place-items: center;
+         background: radial-gradient(circle at 35% 28%, #d6deff, #7a8fff 42%, #3a2f9e 100%);
+         box-shadow: 0 0 70px #6f86ff55, inset 0 -14px 30px #0007; color: #0d1330; margin-top: 6px; }
+  .orb svg { width: 52px; height: 52px; stroke-width: 1.6; }
+  .orb::after { content: ''; position: absolute; inset: -13px; border-radius: 50%; opacity: 0; transition: opacity .3s;
+                background: conic-gradient(rgb(var(--r1)), var(--accent), rgb(var(--r2)), rgb(var(--r1)));
+                -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+                mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px)); }
+  .orb.live { animation: breathe 1.9s ease-in-out infinite; }
+  .orb.live::after { opacity: 1; animation: spin 5s linear infinite; }
+  @keyframes breathe { 50% { transform: scale(1.06); box-shadow: 0 0 100px #6f86ff99, inset 0 -14px 30px #0007; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .heard { margin: 0; min-height: 3.2em; max-width: 30ch; font-size: 1.12rem; line-height: 1.45; letter-spacing: -.01em; }
+  .say { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .say li { font-size: .86rem; color: var(--muted); padding: 8px 14px; border-radius: 99px;
+            border: 1px dashed #ffffff30; background: #ffffff06; }
+
+  .card { width: 100%; text-align: left; padding: 16px 18px; border-radius: 24px; background: var(--glass);
+          border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .card h2 { margin: 0 0 10px; font-size: .95rem; letter-spacing: -.01em; }
+  .card p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+  #log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  #log li { display: flex; justify-content: space-between; gap: 12px; font-size: .92rem; }
+  #log em { font-style: normal; color: var(--muted); font-size: .8rem; }
+  #log .empty { color: var(--muted); }
+  #net { color: #ffb0b9; font-size: .86rem; line-height: 1.5; margin: 0; max-width: 34ch; }
+  .fine { color: var(--muted); font-size: .76rem; line-height: 1.6; margin: 0; max-width: 40ch; }
+
+  /* ---------- Thumb dock ---------- */
+  .dock { position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); bottom: var(--bot);
+          width: calc(100% - 20px); max-width: 560px; padding: 10px; border-radius: 32px; display: grid; gap: 10px;
+          background: var(--glass); border: 1px solid var(--line); box-shadow: 0 22px 60px #000a;
+          backdrop-filter: blur(18px) saturate(1.3); -webkit-backdrop-filter: blur(18px) saturate(1.3); }
+  .relays { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rb { min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 16px 16px 16px 18px; border-radius: 24px; text-align: left; background: #ffffff0d; border: 1px solid var(--line); }
+  .rb b { display: block; font-size: 1.1rem; letter-spacing: -.02em; }
+  .rb small { display: block; margin-top: 5px; color: var(--muted); font-size: .82rem; }
+  .sw { width: 54px; height: 32px; border-radius: 99px; background: #ffffff22; position: relative; flex: none; transition: background .25s; }
+  .sw i { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff;
+          transition: transform .28s cubic-bezier(.3, 1.4, .5, 1), background .25s; }
+  .rb.on { background: linear-gradient(160deg, rgba(var(--c), .3), rgba(var(--c), .08));
+           border-color: rgba(var(--c), .75); box-shadow: 0 0 36px rgba(var(--c), .3); }
+  .rb.on .sw { background: rgb(var(--c)); }
+  .rb.on .sw i { transform: translateX(22px); background: #06121a; }
+  .rb.on small { color: rgb(var(--c)); }
+
+  .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tb { min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+        border-radius: 20px; background: #ffffff0d; border: 1px solid var(--line); font-size: .76rem; color: var(--muted); }
+  .tb.live { background: #9cafff2b; border-color: #9cafff90; color: #fff; }
+  #tOn { color: rgb(var(--r1)); }
+  #tOff { color: #ff9aa8; }
+
+  /* ---------- Floating camera window ---------- */
+  .cam { position: fixed; z-index: 30; left: 0; top: 0; width: var(--cw, 132px); aspect-ratio: var(--car, 0.75); display: none;
+         border-radius: 24px; overflow: hidden; background: #02040c; border: 1.5px solid #ffffff44;
+         box-shadow: 0 20px 50px #000b, 0 0 0 1px #0009; touch-action: none; cursor: grab; }
+  .cam.show { display: block; }
+  .cam.drag { cursor: grabbing; box-shadow: 0 30px 70px #000c, 0 0 0 2px #9cafff88; }
+  .cam video, .cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); background: #02040c; }
+  .cam canvas { background: none; pointer-events: none; }
+  .rz { display: none; position: absolute; right: 0; bottom: 0; width: 38px; height: 38px; padding: 8px; cursor: nwse-resize;
+        touch-action: none; color: #fff; align-items: flex-end; justify-content: flex-end; }
+  .rz svg { width: 16px; height: 16px; }
+  @media (min-width: 900px) { .rz { display: flex; } }
+  .cam-bar { position: absolute; top: 7px; left: 7px; right: 7px; display: flex; justify-content: space-between;
+             align-items: center; pointer-events: none; }
+  .cam-bar span { display: flex; align-items: center; gap: 6px; font-size: .7rem; padding: 6px 9px; border-radius: 99px;
+                  background: #000a; color: #fff; }
+  .cam-bar span::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #ff5d73; box-shadow: 0 0 8px #ff5d73; }
+  .cam-bar div { display: flex; gap: 6px; pointer-events: auto; }
+  .cam-bar button { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #000a; color: #fff; }
+  .cam-bar svg { width: 17px; height: 17px; }
+  .cam-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 44px 14px 14px; text-align: center;
+             font-size: .8rem; line-height: 1.45; color: #dbe3ff; background: #02040ccc; pointer-events: none; }
+  .cam-msg:empty { display: none; }
+
+  /* ---------- Toast ---------- */
+  .toast { position: fixed; z-index: 40; left: 50%; bottom: calc(var(--dock-h) + var(--bot) + 14px);
+           transform: translate(-50%, 12px); opacity: 0; pointer-events: none; padding: 11px 18px; border-radius: 99px;
+           background: #eef2fff2; color: #0a1030; font-weight: 600; font-size: .92rem; white-space: nowrap;
+           transition: opacity .2s, transform .2s; }
+  .toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Lock screen + settings sheet ---------- */
+  .lock { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; padding: 20px; }
+  .locked .lock { display: grid; }
+  .locked .stage, .locked .dock, .locked .gear, .locked .cam { display: none !important; }
+  .panel { width: 100%; max-width: 400px; padding: 26px; border-radius: 30px; background: var(--glass);
+           border: 1px solid var(--line); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  .panel h1 { margin: 0 0 6px; font-size: 1.9rem; letter-spacing: -.05em; }
+  .panel p { margin: 0 0 20px; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+  label { display: block; color: var(--muted); font-size: .84rem; margin: 0 0 8px; }
+  .field { width: 100%; padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: #070b1a99;
+           font-size: 1rem; margin-bottom: 16px; }
+  #pin { text-align: center; letter-spacing: .35em; font-size: 1.3rem; }
+  .main-btn { width: 100%; min-height: 56px; border-radius: 18px; background: #b2bfff; color: #131c3a; font-weight: 700; }
+  .ghost-btn { width: 100%; min-height: 52px; border-radius: 18px; border: 1px solid #ffbac340; color: #ffbac3; background: #ffbac30d; }
+
+  .sheet-wrap { position: fixed; inset: 0; z-index: 60; background: #02040c99; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet { width: 100%; max-width: 560px; padding: 22px 20px calc(var(--bot) + 14px); border-radius: 30px 30px 0 0;
+           background: #0e1530; border: 1px solid var(--line); max-height: 88dvh; overflow: auto; }
+  .sheet h2 { margin: 0 0 18px; font-size: 1.2rem; letter-spacing: -.03em; }
+  .sheet input[type=range] { width: 100%; margin: 4px 0 20px; accent-color: var(--accent); height: 32px; }
+  .sheet-actions { display: grid; gap: 10px; margin-top: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+
+<body class="locked" data-r1="0" data-r2="0">
+
+<div class="bg" aria-hidden="true">
+  <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><div class="grid"></div>
+</div>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><b>Relay Controller</b><small>Relay control</small></div>
+    <div id="c" class="pill" role="status" aria-live="polite"><span id="cs">Enter PIN</span></div>
+    <button class="icon-btn gear" id="gear" type="button" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- PIN lock -->
+<section class="lock" id="lock">
+  <div class="panel">
+    <h1>Your space. Connected.</h1>
+    <p>Enter the control PIN to unlock your two relays.</p>
+    <label for="pin">Control PIN</label>
+    <input id="pin" class="field" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
+    <button class="main-btn" id="go" type="button">Unlock</button>
+  </div>
+</section>
+
+<!-- Voice command deck -->
+<main class="stage" id="app">
+  <div class="deck">
+    <button class="orb" id="orb" type="button" aria-pressed="false" aria-label="Turn voice commands on or off">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </button>
+    <p class="heard" id="heard" role="status" aria-live="polite">Tap the mic, then say “relay one on”.</p>
+    <ul class="say" aria-label="Example voice commands">
+      <li>“r1 on”</li><li>“relay two off”</li><li>“all off”</li><li>“r1 on and r2 on”</li>
+    </ul>
+    <p id="net" hidden>Not connected. Join the NexusRelay Wi-Fi, then check the ESP32 address in settings.</p>
+
+    <section class="card">
+      <h2>Recent commands</h2>
+      <ul id="log"><li class="empty">Commands from voice, hand and touch appear here.</li></ul>
+    </section>
+
+    <section class="card">
+      <h2>Hand control</h2>
+      <p>Tap Hand. Gestures act immediately when recognized:<br>
+      Open palm (all fingers + thumb) &rarr; Relay 1 on &middot; Fist (including thumb closed) &rarr; Relay 1 off<br>
+      Index + thumb (L-sign) &rarr; Relay 2 on &middot; Peace sign &rarr; Relay 2 off<br>
+      Each gesture changes only its selected relay.</p>
+    </section>
+
+    <p class="fine">Safety timeout is on. Relays switch off if this page loses its connection to the ESP32.</p>
+  </div>
+</main>
+
+<!-- Floating camera feed -->
+<div class="cam" id="cam" aria-label="Hand control camera. Drag to move.">
+  <video id="vid" playsinline muted autoplay></video>
+  <canvas id="ov"></canvas>
+  <div class="cam-bar">
+    <span id="camTag">Hand</span>
+    <div>
+      <button id="camSize" type="button" aria-label="Make camera bigger or smaller">
+        <svg viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>
+      </button>
+      <button id="camClose" type="button" aria-label="Turn camera off">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="cam-msg" id="camMsg"></div>
+  <div class="rz" id="rz" aria-label="Drag to resize camera"><svg viewBox="0 0 24 24"><path d="M20 10 10 20M20 16l-4 4"/></svg></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Dock: big, thumb-reach controls -->
+<nav class="dock" id="dock" aria-label="Relay controls">
+  <div class="relays">
+    <button class="rb" id="rb0" type="button" style="--c:61,242,207" aria-pressed="false">
+      <span><b>Relay 1</b><small id="rs0">Off</small></span><span class="sw"><i></i></span>
+    </button>
+    <button class="rb" id="rb1" type="button" style="--c:255,178,74" aria-pressed="false">
+      <span><b>Relay 2</b><small id="rs1">Off</small></span><span class="sw"><i></i></span>
+    </button>
+  </div>
+  <div class="tools">
+    <button class="tb" id="tMic" type="button" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Voice</span>
+    </button>
+    <button class="tb" id="tCam" type="button" aria-pressed="false">
+      <svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4 14.5a1.5 1.5 0 0 1 2.4-1.7L9 15.5"/></svg><span id="camTag">Hand</span>
+    </button>
+    <button class="tb" id="tOn" type="button">
+      <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>All on</span>
+    </button>
+    <button class="tb" id="tOff" type="button">
+      <svg viewBox="0 0 24 24"><path d="M12 3v8M6.3 6.3a8 8 0 1 0 11.4 0"/></svg><span>All off</span>
+    </button>
+  </div>
+</nav>
+
+<!-- Settings -->
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Settings</h2>
+
+    <label for="base">ESP32 address (required for your separately hosted copy)</label>
+    <p>Use the IP printed by the ESP32. Stay on the same Wi-Fi. HTTPS hosting may block requests to an HTTP ESP32; allow local-network access if your browser offers it. Do not expose the ESP32 to the public internet.</p>
+    <input id="base" class="field" type="url" inputmode="url" autocomplete="off" placeholder="http://ESP32-IP-from-serial">
+
+    <h3>Router Wi-Fi setup (offline)</h3>
+    <p>Join <b>NexusRelay-Setup</b> Wi-Fi using password <b>NexusSetup2468</b>, then open <a href="http://192.168.4.1">http://192.168.4.1</a>. Enter control PIN 2468 first. No internet is needed for setup. Use a 2.4 GHz router.</p>
+    <label for="wifiSsid">Router Wi-Fi name (SSID)</label>
+    <input id="wifiSsid" class="field" maxlength="32" autocomplete="off">
+    <label for="wifiPass">Router password (leave blank only for an open network)</label>
+    <input id="wifiPass" class="field" type="password" maxlength="63" autocomplete="new-password">
+    <button class="main-btn" id="wifiSave" type="button">Connect and save router</button>
+    <p id="wifiInfo" role="status">After connection, rejoin your router Wi-Fi. Use the address shown below. Reserve 10.65.195.55 in your router to keep that address.</p>
+    <a id="wifiReturn" hidden>Return to relay control</a>
+
+    <label for="sens">Hand sensitivity (higher = faster)</label>
+    <input id="sens" type="range" min="0" max="1" step="0.05">
+
+    <label for="lang">Voice language</label>
+    <select id="lang" class="field">
+      <option value="en-US">English (US)</option>
+      <option value="en-IN">English (India)</option>
+      <option value="en-GB">English (UK)</option>
+    </select>
+
+    <div class="sheet-actions">
+      <button class="main-btn" id="sheetDone" type="button">Done</button>
+      <button class="ghost-btn" id="lockBtn" type="button">Lock dashboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function esc(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  function buzz() { if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} } }
+
+  var NAMES = ['Relay 1', 'Relay 2'];
+  var key = store.get('nxk') || '';
+  var base = store.get('nxu');
+  var sens = parseFloat(store.get('nxs'));
+  var lang = store.get('nxl') || 'en-US';
+  var st = [0, 0], pending = 0; /* relays always start OFF */
+
+  if (isNaN(sens)) sens = 0.7;
+  /* Only the firmware-served copy uses same-origin requests. */
+  if (window.NEXUS_ESP) base = '';
+  else if (base === null) base = '';
+
+  /* ---------- Layout ---------- */
+  function fit() {
+    document.documentElement.style.setProperty('--dock-h', $('dock').offsetHeight + 'px');
+  }
+
+  function view() {
+    document.body.classList.toggle('locked', !key);
+    fit();
+  }
+
+  /* ---------- Connection status ---------- */
+  function conn(ok, t) {
+    var c = $('c');
+    c.className = 'pill ' + (ok ? 'ok' : 'bad');
+    $('cs').textContent = t || (ok ? 'Connected' : 'Not connected');
+    $('net').hidden = ok || !key;
+  }
+
+  /* ---------- Draw relay state (buttons + background) ---------- */
+  function draw() {
+    var i, b;
+    for (i = 0; i < 2; i++) {
+      b = $('rb' + i);
+      b.classList.toggle('on', !!st[i]);
+      b.setAttribute('aria-pressed', st[i] ? 'true' : 'false');
+      $('rs' + i).textContent = st[i] ? 'On' : 'Off';
+      document.body.setAttribute('data-r' + (i + 1), st[i] ? '1' : '0');
+    }
+  }
+
+  /* ---------- Toast + command log ---------- */
+  var toastTimer = 0, log = [];
+  function toast(t) {
+    var n = $('toast');
+    n.textContent = t;
+    n.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { n.classList.remove('on'); }, 1800);
+  }
+  function note(t, src) {
+    var h = '', i;
+    log.unshift({ t: t, s: src });
+    if (log.length > 4) log.pop();
+    for (i = 0; i < log.length; i++) {
+      h += '<li><span>' + esc(log[i].t) + '</span><em>' + esc(log[i].s) + '</em></li>';
+    }
+    $('log').innerHTML = h;
+    toast(t);
+  }
+
+  /* ---------- Network ---------- */
+  function req(path) {
+    if (!window.NEXUS_ESP && !base) { conn(false, 'Set ESP32 address in Settings'); return; }
+    var x = new XMLHttpRequest(), url = base.replace(/\/+$/, '') + path + (path.indexOf('?') >= 0 ? '&k=' : '?k=') + encodeURIComponent(key);
+    pending++;
+    x.open('GET', url, true);
+    x.timeout = 3000;
+    function fin() { pending--; }
+    x.onload = function () {
+      fin();
+      if (x.status === 403) { badPin(); return; }
+      var j = null;
+      try { j = JSON.parse(x.responseText); } catch (e) {}
+      if (x.status === 200 && j && j.relays) { st = j.relays; draw(); conn(true); }
+      else { conn(false); }
+    };
+    x.onerror = function () { fin(); conn(false); };
+    x.ontimeout = function () { fin(); conn(false); };
+    x.send();
+  }
+
+  function hb() { if (key && pending === 0) req('/hb'); }
+
+  function badPin() {
+    key = '';
+    store.del('nxk');
+    voiceOff(true);
+    gStop();
+    view();
+    conn(false, 'Wrong PIN');
+  }
+
+  /* ---------- Relay actions (shared by touch, voice, hand) ---------- */
+  function setOne(i, v, src) {
+    st[i] = v ? 1 : 0;
+    draw();
+    req('/relay' + (i + 1) + '/' + (v ? 'on' : 'off'));
+    note(NAMES[i] + ' ' + (v ? 'on' : 'off'), src);
+    buzz();
+  }
+  function setAll(v, src) {
+    st[0] = st[1] = v ? 1 : 0;
+    draw();
+    req('/all/' + (v ? 'on' : 'off'));
+    note('All relays ' + (v ? 'on' : 'off'), src);
+    buzz();
+  }
+
+  $('rb0').addEventListener('click', function () { setOne(0, !st[0], 'touch'); });
+  $('rb1').addEventListener('click', function () { setOne(1, !st[1], 'touch'); });
+  $('tOn').addEventListener('click', function () { setAll(true, 'touch'); });
+  $('tOff').addEventListener('click', function () { setAll(false, 'touch'); });
+
+  /* =========================================================
+     VOICE COMMAND DECK
+     ========================================================= */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, wantVoice = false;
+
+  function heard(t) { $('heard').textContent = t; }
+
+  function setLive(v) {
+    $('orb').classList.toggle('live', v);
+    $('tMic').classList.toggle('live', v);
+    $('orb').setAttribute('aria-pressed', v ? 'true' : 'false');
+    $('tMic').setAttribute('aria-pressed', v ? 'true' : 'false');
+  }
+
+  /* Reads one spoken clause: which relay, and on or off */
+  function parseOne(p) {
+    var on = /\b(on|start|enable|activate)\b/.test(p);
+    var off = /\b(off|stop|disable|kill|shut)\b/.test(p);
+    var act = (on === off) ? null : on;
+    var tgt = null, m;
+    if (/\b(all|both|everything|every)\b/.test(p)) {
+      tgt = 'all';
+    } else if ((m = p.match(/\b(?:relay|relays|rely|riley|really|r|are|our)\s*(1|one|won|2|two|to|too)\b/))) {
+      tgt = (m[1] === '1' || m[1] === 'one' || m[1] === 'won') ? 0 : 1;
+    } else if ((m = p.match(/\b(first|1st|second|2nd)\b/))) {
+      tgt = (m[1] === 'first' || m[1] === '1st') ? 0 : 1;
+    }
+    return { tgt: tgt, act: act };
+  }
+
+  function runSpeech(raw) {
+    var t = raw.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    var parts = t.split(/\b(?:and|then|also|plus)\b/), cmds = [], i, c, done = 0;
+    for (i = 0; i < parts.length; i++) cmds.push(parseOne(parts[i]));
+    /* "relay one and relay two on": the first clause borrows the later action */
+    for (i = cmds.length - 2; i >= 0; i--) {
+      if (cmds[i].tgt !== null && cmds[i].act === null && cmds[i + 1].act !== null) cmds[i].act = cmds[i + 1].act;
+    }
+    for (i = 0; i < cmds.length; i++) {
+      c = cmds[i];
+      if (c.tgt === null || c.act === null) continue;
+      if (c.tgt === 'all') setAll(c.act, 'voice'); else setOne(c.tgt, c.act, 'voice');
+      done++;
+    }
+    heard('“' + raw.trim() + '”' + (done ? '' : ' (not a relay command)'));
+  }
+
+  function launch() {
+    if (rec) { try { rec.onend = null; rec.abort(); } catch (e) {} }
+    rec = new SR();
+    rec.lang = lang;
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    rec.onstart = function () { setLive(true); };
+    rec.onresult = function (e) {
+      var interim = '', i, r;
+      for (i = e.resultIndex; i < e.results.length; i++) {
+        r = e.results[i];
+        if (r.isFinal) runSpeech(r[0].transcript); else interim += r[0].transcript;
+      }
+      if (interim) heard('“' + interim.trim() + '”');
+    };
+    rec.onerror = function (e) {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        wantVoice = false;
+        heard('Microphone is blocked. Allow it in your browser and open this page over HTTPS.');
+      } else if (e.error === 'network') {
+        wantVoice = false;
+        heard('Voice needs internet for speech recognition. Use the buttons while on the ESP32 Wi-Fi only.');
+      } else if (e.error === 'audio-capture') {
+        wantVoice = false;
+        heard('No microphone found.');
+      }
+    };
+    rec.onend = function () {
+      setLive(false);
+      if (wantVoice) setTimeout(function () { if (wantVoice) launch(); }, 300);
+    };
+    try { rec.start(); } catch (e) {}
+  }
+
+  function voiceOn() {
+    if (!SR) { heard('Voice works in Chrome, Edge or Safari. Use the buttons here.'); return; }
+    wantVoice = true;
+    heard('Listening… say “relay one on”.');
+    launch();
+  }
+
+  function voiceOff(silent) {
+    wantVoice = false;
+    if (rec) { try { rec.onend = null; rec.stop(); } catch (e) {} }
+    setLive(false);
+    if (!silent) heard('Voice is off. Tap the mic to talk.');
+  }
+
+  function toggleVoice() { if (wantVoice) voiceOff(); else voiceOn(); }
+  $('orb').addEventListener('click', toggleVoice);
+  $('tMic').addEventListener('click', toggleVoice);
+
+  /* =========================================================
+     HAND CONTROL: MediaPipe hand landmarks drive the relays
+     ========================================================= */
+  var cam = $('cam'), vid = $('vid'), ov = $('ov'), octx = ov.getContext('2d');
+  var gStream = null, gOn = false, hl = null, loading = null, raf = 0, lastT = -1;
+  var lastGesture = null;
+  var ratio = 0.75, camBig = false, camW = parseFloat(store.get('nxw')) || 0;
+  var LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+  function wide() { return window.innerWidth >= 900; }
+  function maxW() { return Math.max(176, Math.min(window.innerWidth * 0.5, window.innerHeight * 0.9 * ratio)); }
+  function camMsg(t) { $('camMsg').textContent = t; }
+
+  /* Phone: small or large. Laptop: any width up to half the screen. */
+  function applyW() {
+    var w = wide() ? Math.max(176, Math.min(maxW(), camW || 360)) : (camBig ? Math.min(window.innerWidth * 0.74, 290) : 132);
+    cam.style.setProperty('--cw', w + 'px');
+    cam.style.setProperty('--car', ratio);
+  }
+  function place(x, y) {
+    var w = cam.offsetWidth, h = cam.offsetHeight, m = 6;
+    cam.style.left = Math.max(m, Math.min(window.innerWidth - w - m, x)) + 'px';
+    cam.style.top = Math.max(m, Math.min(window.innerHeight - h - m, y)) + 'px';
+  }
+  function setCamBtn(v) {
+    $('tCam').classList.toggle('live', v);
+    $('tCam').setAttribute('aria-pressed', v ? 'true' : 'false');
+  }
+
+  // Exact classification and lastGesture behavior from esp32 -3.html.
+  function setGestureUI(state, emoji, name, sub) {
+    $('camTag').textContent = emoji + ' ' + name + ' — ' + sub;
+  }
+  function setRelay(number, on, source) {
+    if (key) setOne(number - 1, on, 'hand');
+  }
+function detectGesture(lm) {
+  const indexExtended  = lm[8].y  < lm[6].y;
+  const middleExtended = lm[12].y < lm[10].y;
+  const ringExtended   = lm[16].y < lm[14].y;
+  const pinkyExtended  = lm[20].y < lm[18].y;
+  const thumbExtended  = lm[4].x  < lm[2].x;   // mirrored feed
+
+  const hud = $('camTag');
+
+  // 🤚 Open palm → Relay 1 ON
+  if (indexExtended && middleExtended && ringExtended && pinkyExtended && thumbExtended) {
+    hud.textContent = '🤚 FOUR FINGERS → R1 ON';
+    if (lastGesture !== 'PALM') {
+      lastGesture = 'PALM';
+      setGestureUI('on','🤚','FOUR FINGERS','Relay 1 → ON');
+      setRelay(1, true, '🤚 Open Palm');
+    }
+  }
+  // ✊ Closed fist → Relay 1 OFF
+  else if (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended && !thumbExtended) {
+    hud.textContent = '✊ Closed Fist → R1 OFF';
+    if (lastGesture !== 'FIST') {
+      lastGesture = 'FIST';
+      setGestureUI('off','✊','CLOSED FIST','Relay 1 → OFF');
+      setRelay(1, false, '✊ Closed Fist');
+    }
+  }
+  // ☝ L-sign (index + thumb out, others closed) → Relay 2 ON
+  else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended && thumbExtended) {
+    hud.textContent = '☝ point-Sign → R2 ON';
+    if (lastGesture !== 'L') {
+      lastGesture = 'L';
+      setGestureUI('on','☝','point-SIGN','Relay 2 → ON');
+      setRelay(2, true, '☝ L-Sign');
+    }
+  }
+  // ✌️ Peace sign → Relay 2 OFF
+  else if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
+    hud.textContent = '✌️ Peace Sign → R2 OFF';
+    if (lastGesture !== 'PEACE') {
+      lastGesture = 'PEACE';
+      setGestureUI('off','✌️','PEACE SIGN','Relay 2 → OFF');
+      setRelay(2, false, '✌️ Peace Sign');
+    }
+  }
+  else {
+    hud.textContent = '👋 Detecting…';
+    setGestureUI('idle','👋','DETECTING…','Hold gesture steady');
+  }
+}
+
+
+  function loadHands() {
+    if (hl) return Promise.resolve();
+    if (loading) return loading;
+    loading = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+      script.onload = resolve; script.onerror = reject;
+      document.head.appendChild(script);
+    }).then(function () {
+      hl = new Hands({ locateFile: function (f) {
+        return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + f;
+      }});
+      hl.setOptions({ maxNumHands: 1, modelComplexity: 1,
+        minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+      hl.onResults(function (results) {
+        var h = results.multiHandLandmarks && results.multiHandLandmarks[0];
+        drawHand(h);
+        if (h) detectGesture(h);
+        else {
+          lastGesture = null;
+          setGestureUI('idle', '🤔', 'NO HAND', 'Show your hand to camera');
+        }
+      });
+    }).catch(function (e) { loading = null; hl = null; throw e; });
+    return loading;
+  }
+
+  function drawHand(h) {
+    var w = ov.width, ht = ov.height, i, p;
+    octx.clearRect(0, 0, w, ht);
+    if (!h) return;
+    octx.lineWidth = Math.max(2, w / 150);
+    octx.strokeStyle = '#2979ff';
+    octx.beginPath();
+    for (i = 0; i < LINKS.length; i++) {
+      octx.moveTo(h[LINKS[i][0]].x * w, h[LINKS[i][0]].y * ht);
+      octx.lineTo(h[LINKS[i][1]].x * w, h[LINKS[i][1]].y * ht);
+    }
+    octx.stroke();
+    octx.fillStyle = '#ff1744';
+    for (i = 0; i < h.length; i++) {
+      octx.beginPath();
+      octx.arc(h[i].x * w, h[i].y * ht, Math.max(2.5, w / 130), 0, 6.283);
+      octx.fill();
+    }
+  }
+
+  async function loop() {
+    if (!gOn || !hl) return;
+    try {
+      await hl.send({ image: vid });
+    } catch (e) {
+      camMsg('Hand tracking failed. Stop and restart Hand.');
+      return;
+    }
+    if (gOn) raf = requestAnimationFrame(loop);
+  }
+
+  function gStart() {
+    cam.classList.add('show');
+    applyW();
+    place(window.innerWidth - cam.offsetWidth - 12, 96);
+    setCamBtn(true);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      camMsg('Camera needs a secure page. Open this from HTTPS or localhost.');
+      return;
+    }
+    camMsg('Starting camera\u2026');
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function (s) {
+      gStream = s;
+      vid.srcObject = s;
+      return vid.play();
+    }).then(function () {
+      gOn = true;
+      camMsg('Loading hand model\u2026');
+      return loadHands();
+    }).then(function () {
+      if (!gOn) return;
+      camMsg('');
+      lastGesture = null;
+      raf = requestAnimationFrame(loop);
+    }).catch(function (e) {
+      if (!gStream) camMsg(e && e.name === 'NotAllowedError' ? 'Camera is blocked. Allow it in your browser settings.' : 'Camera is not available.');
+      else camMsg('Hand model could not load. It needs internet access.');
+    });
+  }
+
+  function gStop() {
+    cancelAnimationFrame(raf);
+    gOn = false;
+    if (gStream) { gStream.getTracks().forEach(function (t) { t.stop(); }); gStream = null; }
+    vid.srcObject = null;
+    octx.clearRect(0, 0, ov.width, ov.height);
+    cam.classList.remove('show');
+    setCamBtn(false);
+    camMsg('');
+  }
+
+  vid.addEventListener('loadedmetadata', function () {
+    if (!vid.videoWidth) return;
+    ratio = vid.videoWidth / vid.videoHeight;
+    ov.width = vid.videoWidth; ov.height = vid.videoHeight;
+    applyW();
+    place(cam.offsetLeft, cam.offsetTop);
+  });
+
+  $('tCam').addEventListener('click', function () { if (gOn || cam.classList.contains('show')) gStop(); else gStart(); });
+  $('camClose').addEventListener('click', gStop);
+  $('camSize').addEventListener('click', function () {
+    if (wide()) { camW = cam.offsetWidth >= maxW() - 4 ? 360 : maxW(); store.set('nxw', camW); }
+    else camBig = !camBig;
+    applyW();
+    place(cam.offsetLeft, cam.offsetTop);
+  });
+
+  /* Drag the camera anywhere; pull the corner handle to resize (laptop, up to half the screen) */
+  var drag = null, rs = null;
+  cam.addEventListener('pointerdown', function (e) {
+    if (e.target.closest && e.target.closest('button')) return;
+    drag = { dx: e.clientX - cam.offsetLeft, dy: e.clientY - cam.offsetTop };
+    try { cam.setPointerCapture(e.pointerId); } catch (err) {}
+    cam.classList.add('drag');
+  });
+  cam.addEventListener('pointermove', function (e) { if (drag) place(e.clientX - drag.dx, e.clientY - drag.dy); });
+  function endDrag() { drag = null; cam.classList.remove('drag'); }
+  cam.addEventListener('pointerup', endDrag);
+  cam.addEventListener('pointercancel', endDrag);
+
+  $('rz').addEventListener('pointerdown', function (e) {
+    e.stopPropagation();
+    rs = { x: e.clientX, w: cam.offsetWidth };
+    try { this.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  $('rz').addEventListener('pointermove', function (e) {
+    if (!rs) return;
+    camW = Math.max(176, Math.min(maxW(), rs.w + e.clientX - rs.x));
+    applyW();
+    place(cam.offsetLeft, cam.offsetTop);
+  });
+  function endRs() { if (rs) store.set('nxw', camW); rs = null; }
+  $('rz').addEventListener('pointerup', endRs);
+  $('rz').addEventListener('pointercancel', endRs);
+
+  window.addEventListener('resize', function () {
+    fit();
+    applyW();
+    if (cam.classList.contains('show')) place(cam.offsetLeft, cam.offsetTop);
+  });
+
+
+  /* =========================================================
+     SETTINGS
+     ========================================================= */
+  var wifiPoll;
+  $('wifiSave').addEventListener('click', async function () {
+    if (!key) { $('wifiInfo').textContent = 'Unlock with the control PIN first.'; return; }
+    var target = window.NEXUS_ESP ? location.origin : (base || 'http://192.168.4.1');
+    $('wifiSave').disabled = true;
+    $('wifiReturn').hidden = true;
+    try {
+      var response = await fetch(target + '/wifi/config?k=' + encodeURIComponent(key), {
+        method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({ssid:$('wifiSsid').value, password:$('wifiPass').value}),
+        signal: AbortSignal.timeout(8000)
+      });
+      var result = await response.json();
+      if (!response.ok) throw Error(result.error || 'Setup failed');
+      $('wifiPass').value = '';
+      $('wifiInfo').textContent = 'Connecting to router. Stay on the setup Wi-Fi for the result…';
+      clearInterval(wifiPoll);
+      wifiPoll = setInterval(async function () {
+        try {
+          var r = await fetch(target + '/wifi/status?k=' + encodeURIComponent(key), {signal:AbortSignal.timeout(4000)});
+          if (!r.ok) throw Error('Status unavailable');
+          var d = await r.json();
+          if (d.state === 'connected') {
+            clearInterval(wifiPoll);
+            $('wifiInfo').textContent = 'Saved! Rejoin your router Wi-Fi, then open http://' + d.ip + '. Normal relay control is ready.';
+            $('wifiReturn').href = 'http://' + d.ip;
+            $('wifiReturn').textContent = 'Open relay control at ' + d.ip;
+            $('wifiReturn').hidden = false;
+            store.set('nxu', 'http://' + d.ip);
+            $('wifiSave').disabled = false;
+          } else if (d.state === 'failed') {
+            clearInterval(wifiPoll);
+            $('wifiInfo').textContent = 'Could not join the router. Check name/password and 2.4 GHz coverage. Previous saved credentials are unchanged. Try again here.';
+            $('wifiSave').disabled = false;
+          }
+        } catch (e) { $('wifiInfo').textContent = 'Keep connected to NexusRelay-Setup to read the connection result.'; }
+      }, 1500);
+    } catch (e) {
+      $('wifiInfo').textContent = e.message + '. Join setup Wi-Fi and open http://192.168.4.1 if your hosted page is blocked by the browser.';
+      $('wifiSave').disabled = false;
+    }
+  });
+  $('base').value = base;
+  $('sens').value = sens;
+  $('lang').value = lang;
+
+  $('gear').addEventListener('click', function () { $('sheetWrap').hidden = false; });
+  function closeSheet() { $('sheetWrap').hidden = true; }
+  $('sheetDone').addEventListener('click', closeSheet);
+  $('sheetWrap').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
+
+  $('base').addEventListener('change', function () {
+    base = this.value.trim().replace(/\/+$/, '');
+    if (base && !/^https?:\/\//i.test(base)) base = 'http://' + base;
+    this.value = base;
+    store.set('nxu', base);
+    hb();
+  });
+  $('sens').addEventListener('input', function () {
+    sens = parseFloat(this.value);
+    store.set('nxs', sens);
+  });
+  $('lang').addEventListener('change', function () {
+    lang = this.value;
+    store.set('nxl', lang);
+    if (wantVoice) launch();
+  });
+  $('lockBtn').addEventListener('click', function () {
+    key = '';
+    store.del('nxk');
+    voiceOff(true);
+    gStop();
+    closeSheet();
+    view();
+    conn(false, 'Enter PIN');
+  });
+
+  /* ---------- PIN unlock ---------- */
+  $('go').addEventListener('click', function () {
+    var v = $('pin').value;
+    if (!v) return;
+    key = v;
+    store.set('nxk', key);
+    $('pin').value = '';
+    view();
+    conn(true, 'Connecting…');
+    req('/hb');
+  });
+  $('pin').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('go').click(); });
+
+  /* ---------- Init ---------- */
+  draw();
+  view();
+  if (key) conn(true, 'Connecting…'); else conn(false, 'Enter PIN');
+  hb();
+  setInterval(hb, 300);
+})();
+</script>
+</body>
+</html>
