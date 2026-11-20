@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>window.NEXUS_ESP=true;</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#070b1a">
-<title>Relay Cammand Deck</title>
+<title>Nexus Relay</title>
 
 <style>
   :root {
@@ -123,6 +122,15 @@
   #net { color: #ffb0b9; font-size: .86rem; line-height: 1.5; margin: 0; max-width: 34ch; }
   .fine { color: var(--muted); font-size: .76rem; line-height: 1.6; margin: 0; max-width: 40ch; }
 
+  .gmap { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .gmap li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px;
+             background: #ffffff0a; border: 1px solid var(--line); font-size: .86rem; }
+  .gmap span { font-size: 1.5rem; line-height: 1; }
+  .gmap b { display: block; font-size: .92rem; }
+  .gmap small { color: var(--muted); font-size: .76rem; }
+  .gmap .g-on b { color: rgb(var(--r1)); }
+  .gmap .g-off b { color: #ff9aa8; }
+
   /* ---------- Thumb dock ---------- */
   .dock { position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); bottom: var(--bot);
           width: calc(100% - 20px); max-width: 560px; padding: 10px; border-radius: 32px; display: grid; gap: 10px;
@@ -164,7 +172,7 @@
   .cam-bar { position: absolute; top: 7px; left: 7px; right: 7px; display: flex; justify-content: space-between;
              align-items: center; pointer-events: none; }
   .cam-bar span { display: flex; align-items: center; gap: 6px; font-size: .7rem; padding: 6px 9px; border-radius: 99px;
-                  background: #000a; color: #fff; }
+                  background: #000a; color: #fff; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cam-bar span::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #ff5d73; box-shadow: 0 0 8px #ff5d73; }
   .cam-bar div { display: flex; gap: 6px; pointer-events: auto; }
   .cam-bar button { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #000a; color: #fff; }
@@ -216,7 +224,7 @@
 
 <header class="top">
   <div class="top-in">
-    <div class="brand"><b>Relay Controller</b><small>Relay control</small></div>
+    <div class="brand"><b>Nexus</b><small>Relay control</small></div>
     <div id="c" class="pill" role="status" aria-live="polite"><span id="cs">Enter PIN</span></div>
     <button class="icon-btn gear" id="gear" type="button" aria-label="Settings">
       <svg viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
@@ -254,10 +262,13 @@
 
     <section class="card">
       <h2>Hand control</h2>
-      <p>Tap Hand. Gestures act immediately when recognized:<br>
-      Open palm (all fingers + thumb) &rarr; Relay 1 on &middot; Fist (including thumb closed) &rarr; Relay 1 off<br>
-      Index + thumb (L-sign) &rarr; Relay 2 on &middot; Peace sign &rarr; Relay 2 off<br>
-      Each gesture changes only its selected relay.</p>
+      <p>Tap Hand, show your hand to the camera and hold a gesture steady for a moment.</p>
+      <ul class="gmap">
+        <li class="g-on"><span>👆</span><div><b>R1 on</b><small>Index finger up</small></div></li>
+        <li class="g-on"><span>✌️</span><div><b>R2 on</b><small>Peace sign</small></div></li>
+        <li class="g-off"><span>✊</span><div><b>R1 off</b><small>Closed fist</small></div></li>
+        <li class="g-off"><span>🖐</span><div><b>R2 off</b><small>Open palm</small></div></li>
+      </ul>
     </section>
 
     <p class="fine">Safety timeout is on. Relays switch off if this page loses its connection to the ESP32.</p>
@@ -300,7 +311,7 @@
       <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Voice</span>
     </button>
     <button class="tb" id="tCam" type="button" aria-pressed="false">
-      <svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4 14.5a1.5 1.5 0 0 1 2.4-1.7L9 15.5"/></svg><span id="camTag">Hand</span>
+      <svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1a6 6 0 0 1-5-2.7L4 14.5a1.5 1.5 0 0 1 2.4-1.7L9 15.5"/></svg><span>Hand</span>
     </button>
     <button class="tb" id="tOn" type="button">
       <svg viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>All on</span>
@@ -316,21 +327,10 @@
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
     <h2 id="sheetTitle">Settings</h2>
 
-    <label for="base">ESP32 address (required for your separately hosted copy)</label>
-    <p>Use the IP printed by the ESP32. Stay on the same Wi-Fi. HTTPS hosting may block requests to an HTTP ESP32; allow local-network access if your browser offers it. Do not expose the ESP32 to the public internet.</p>
-    <input id="base" class="field" type="url" inputmode="url" autocomplete="off" placeholder="http://ESP32-IP-from-serial">
+    <label for="base">ESP32 address (leave empty if this page is served by the ESP32)</label>
+    <input id="base" class="field" type="url" inputmode="url" autocomplete="off" placeholder="http://192.168.4.1">
 
-    <h3>Router Wi-Fi setup (offline)</h3>
-    <p>Join <b>NexusRelay-Setup</b> Wi-Fi using password <b>NexusSetup2468</b>, then open <a href="http://192.168.4.1">http://192.168.4.1</a>. Enter control PIN 2468 first. No internet is needed for setup. Use a 2.4 GHz router.</p>
-    <label for="wifiSsid">Router Wi-Fi name (SSID)</label>
-    <input id="wifiSsid" class="field" maxlength="32" autocomplete="off">
-    <label for="wifiPass">Router password (leave blank only for an open network)</label>
-    <input id="wifiPass" class="field" type="password" maxlength="63" autocomplete="new-password">
-    <button class="main-btn" id="wifiSave" type="button">Connect and save router</button>
-    <p id="wifiInfo" role="status">After connection, rejoin your router Wi-Fi. Use the address shown below. Reserve 10.65.195.55 in your router to keep that address.</p>
-    <a id="wifiReturn" hidden>Return to relay control</a>
-
-    <label for="sens">Hand sensitivity (higher = faster)</label>
+    <label for="sens">Hand sensitivity (max = instant)</label>
     <input id="sens" type="range" min="0" max="1" step="0.05">
 
     <label for="lang">Voice language</label>
@@ -371,9 +371,8 @@
   var st = [0, 0], pending = 0; /* relays always start OFF */
 
   if (isNaN(sens)) sens = 0.7;
-  /* Only the firmware-served copy uses same-origin requests. */
-  if (window.NEXUS_ESP) base = '';
-  else if (base === null) base = '';
+  /* Opened as a local file: talk to the ESP32's default address. Served by the ESP32: same origin. */
+  if (base === null) base = 'http://10.65.195.55';
 
   /* ---------- Layout ---------- */
   function fit() {
@@ -427,8 +426,7 @@
 
   /* ---------- Network ---------- */
   function req(path) {
-    if (!window.NEXUS_ESP && !base) { conn(false, 'Set ESP32 address in Settings'); return; }
-    var x = new XMLHttpRequest(), url = base.replace(/\/+$/, '') + path + (path.indexOf('?') >= 0 ? '&k=' : '?k=') + encodeURIComponent(key);
+    var x = new XMLHttpRequest(), url = base.replace(/\/+$/, '') + path + '?k=' + encodeURIComponent(key);
     pending++;
     x.open('GET', url, true);
     x.timeout = 3000;
@@ -585,8 +583,9 @@
      ========================================================= */
   var cam = $('cam'), vid = $('vid'), ov = $('ov'), octx = ov.getContext('2d');
   var gStream = null, gOn = false, hl = null, loading = null, raf = 0, lastT = -1;
-  var lastGesture = null;
+  var gLast = null, gSeen = 0, gDone = false, busy = false;
   var ratio = 0.75, camBig = false, camW = parseFloat(store.get('nxw')) || 0;
+  var H = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240';
   var LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 
   function wide() { return window.innerWidth >= 900; }
@@ -609,105 +608,71 @@
     $('tCam').setAttribute('aria-pressed', v ? 'true' : 'false');
   }
 
-  // Exact classification and lastGesture behavior from esp32 -3.html.
-  function setGestureUI(state, emoji, name, sub) {
-    $('camTag').textContent = emoji + ' ' + name + ' — ' + sub;
+  /* ---------- Gestures (same finger test as the GestureRelay page) ---------- */
+  var GEST = {
+    point: { tag: '\uD83D\uDC46 R1 on',  relay: 0, on: true  },
+    peace: { tag: '\u270C\uFE0F R2 on',  relay: 1, on: true  },
+    fist:  { tag: '\u270A R1 off', relay: 0, on: false },
+    palm:  { tag: '\uD83D\uDD90 R2 off', relay: 1, on: false }
+  };
+  function readGesture(h) {
+    var i = h[8].y < h[6].y, m = h[12].y < h[10].y, r = h[16].y < h[14].y, p = h[20].y < h[18].y;
+    if (i && m && r && p) return 'palm';
+    if (!i && !m && !r && !p) return 'fist';
+    if (i && !m && !r && !p) return 'point';
+    if (i && m && !r && !p) return 'peace';
+    return null;
   }
-  function setRelay(number, on, source) {
-    if (key) setOne(number - 1, on, 'hand');
+  /* Fires once per held gesture, after it has been steady for a moment */
+  function applyGesture(name) {
+    var g = name ? GEST[name] : null, now = Date.now();
+    if (!g) { gLast = null; gDone = false; $('camTag').textContent = 'Hand'; return; }
+    $('camTag').textContent = g.tag;
+    if (name !== gLast) { gLast = name; gSeen = 0; gDone = false; }
+    gSeen++;
+    /* Instant: fires on the first frame of a new gesture (higher sensitivity = fewer confirming frames) */
+    if (gDone || gSeen < Math.max(1, Math.round((1 - sens) * 4))) return;
+    gDone = true;
+    if (st[g.relay] === (g.on ? 1 : 0)) return;
+    setOne(g.relay, g.on, 'hand');
   }
-function detectGesture(lm) {
-  const indexExtended  = lm[8].y  < lm[6].y;
-  const middleExtended = lm[12].y < lm[10].y;
-  const ringExtended   = lm[16].y < lm[14].y;
-  const pinkyExtended  = lm[20].y < lm[18].y;
-  const thumbExtended  = lm[4].x  < lm[2].x;   // mirrored feed
 
-  const hud = $('camTag');
-
-  // 🤚 Open palm → Relay 1 ON
-  if (indexExtended && middleExtended && ringExtended && pinkyExtended && thumbExtended) {
-    hud.textContent = '🤚 FOUR FINGERS → R1 ON';
-    if (lastGesture !== 'PALM') {
-      lastGesture = 'PALM';
-      setGestureUI('on','🤚','FOUR FINGERS','Relay 1 → ON');
-      setRelay(1, true, '🤚 Open Palm');
-    }
+  /* ---------- Hand model (MediaPipe Hands, as in the GestureRelay page) ---------- */
+  function loadScript(src) {
+    return new Promise(function (ok, no) {
+      var el = document.createElement('script');
+      el.src = src;
+      el.crossOrigin = 'anonymous';
+      el.onload = ok;
+      el.onerror = function () { no(new Error('script')); };
+      document.head.appendChild(el);
+    });
   }
-  // ✊ Closed fist → Relay 1 OFF
-  else if (!indexExtended && !middleExtended && !ringExtended && !pinkyExtended && !thumbExtended) {
-    hud.textContent = '✊ Closed Fist → R1 OFF';
-    if (lastGesture !== 'FIST') {
-      lastGesture = 'FIST';
-      setGestureUI('off','✊','CLOSED FIST','Relay 1 → OFF');
-      setRelay(1, false, '✊ Closed Fist');
-    }
-  }
-  // ☝ L-sign (index + thumb out, others closed) → Relay 2 ON
-  else if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended && thumbExtended) {
-    hud.textContent = '☝ point-Sign → R2 ON';
-    if (lastGesture !== 'L') {
-      lastGesture = 'L';
-      setGestureUI('on','☝','point-SIGN','Relay 2 → ON');
-      setRelay(2, true, '☝ L-Sign');
-    }
-  }
-  // ✌️ Peace sign → Relay 2 OFF
-  else if (indexExtended && middleExtended && !ringExtended && !pinkyExtended) {
-    hud.textContent = '✌️ Peace Sign → R2 OFF';
-    if (lastGesture !== 'PEACE') {
-      lastGesture = 'PEACE';
-      setGestureUI('off','✌️','PEACE SIGN','Relay 2 → OFF');
-      setRelay(2, false, '✌️ Peace Sign');
-    }
-  }
-  else {
-    hud.textContent = '👋 Detecting…';
-    setGestureUI('idle','👋','DETECTING…','Hold gesture steady');
-  }
-}
-
-
   function loadHands() {
     if (hl) return Promise.resolve();
     if (loading) return loading;
-    loading = new Promise(function (resolve, reject) {
-      var script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
-      script.onload = resolve; script.onerror = reject;
-      document.head.appendChild(script);
-    }).then(function () {
-      hl = new Hands({ locateFile: function (f) {
-        return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + f;
-      }});
-      hl.setOptions({ maxNumHands: 1, modelComplexity: 1,
-        minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
-      hl.onResults(function (results) {
-        var h = results.multiHandLandmarks && results.multiHandLandmarks[0];
-        drawHand(h);
-        if (h) detectGesture(h);
-        else {
-          lastGesture = null;
-          setGestureUI('idle', '🤔', 'NO HAND', 'Show your hand to camera');
-        }
-      });
-    }).catch(function (e) { loading = null; hl = null; throw e; });
+    loading = loadScript(H + '/hands.js').then(function () {
+      var m = new window.Hands({ locateFile: function (f) { return H + '/' + f; } });
+      m.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+      m.onResults(onHand);
+      return m.initialize().then(function () { hl = m; });
+    }).catch(function (e) { loading = null; throw e; });
     return loading;
   }
 
   function drawHand(h) {
-    var w = ov.width, ht = ov.height, i, p;
+    var w = ov.width, ht = ov.height, i;
     octx.clearRect(0, 0, w, ht);
     if (!h) return;
     octx.lineWidth = Math.max(2, w / 150);
-    octx.strokeStyle = '#2979ff';
+    octx.strokeStyle = '#2979ff';            /* blue bones */
     octx.beginPath();
     for (i = 0; i < LINKS.length; i++) {
       octx.moveTo(h[LINKS[i][0]].x * w, h[LINKS[i][0]].y * ht);
       octx.lineTo(h[LINKS[i][1]].x * w, h[LINKS[i][1]].y * ht);
     }
     octx.stroke();
-    octx.fillStyle = '#ff1744';
+    octx.fillStyle = '#ff1744';              /* red joints */
     for (i = 0; i < h.length; i++) {
       octx.beginPath();
       octx.arc(h[i].x * w, h[i].y * ht, Math.max(2.5, w / 130), 0, 6.283);
@@ -715,15 +680,21 @@ function detectGesture(lm) {
     }
   }
 
-  async function loop() {
-    if (!gOn || !hl) return;
-    try {
-      await hl.send({ image: vid });
-    } catch (e) {
-      camMsg('Hand tracking failed. Stop and restart Hand.');
-      return;
-    }
-    if (gOn) raf = requestAnimationFrame(loop);
+  /* MediaPipe calls this with every processed frame */
+  function onHand(r) {
+    var h = r && r.multiHandLandmarks && r.multiHandLandmarks[0];
+    if (!gOn) { octx.clearRect(0, 0, ov.width, ov.height); return; }
+    drawHand(h);
+    if (!h) { applyGesture(null); return; }
+    if (key) applyGesture(readGesture(h));
+  }
+
+  function loop() {
+    if (!gOn) return;
+    raf = requestAnimationFrame(loop);
+    if (!hl || busy || vid.readyState < 2) return;
+    busy = true;
+    hl.send({ image: vid }).then(function () { busy = false; }, function () { busy = false; });
   }
 
   function gStart() {
@@ -736,19 +707,18 @@ function detectGesture(lm) {
       return;
     }
     camMsg('Starting camera\u2026');
-    navigator.mediaDevices.getUserMedia({ video: true })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
     .then(function (s) {
       gStream = s;
       vid.srcObject = s;
-      return vid.play();
-    }).then(function () {
+      if (vid.play) vid.play().catch(function () {});
       gOn = true;
       camMsg('Loading hand model\u2026');
       return loadHands();
     }).then(function () {
       if (!gOn) return;
       camMsg('');
-      lastGesture = null;
+      lastT = -1;
       raf = requestAnimationFrame(loop);
     }).catch(function (e) {
       if (!gStream) camMsg(e && e.name === 'NotAllowedError' ? 'Camera is blocked. Allow it in your browser settings.' : 'Camera is not available.');
@@ -761,6 +731,7 @@ function detectGesture(lm) {
     gOn = false;
     if (gStream) { gStream.getTracks().forEach(function (t) { t.stop(); }); gStream = null; }
     vid.srcObject = null;
+    gLast = null; gDone = false;
     octx.clearRect(0, 0, ov.width, ov.height);
     cam.classList.remove('show');
     setCamBtn(false);
@@ -822,48 +793,6 @@ function detectGesture(lm) {
   /* =========================================================
      SETTINGS
      ========================================================= */
-  var wifiPoll;
-  $('wifiSave').addEventListener('click', async function () {
-    if (!key) { $('wifiInfo').textContent = 'Unlock with the control PIN first.'; return; }
-    var target = window.NEXUS_ESP ? location.origin : (base || 'http://192.168.4.1');
-    $('wifiSave').disabled = true;
-    $('wifiReturn').hidden = true;
-    try {
-      var response = await fetch(target + '/wifi/config?k=' + encodeURIComponent(key), {
-        method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
-        body: new URLSearchParams({ssid:$('wifiSsid').value, password:$('wifiPass').value}),
-        signal: AbortSignal.timeout(8000)
-      });
-      var result = await response.json();
-      if (!response.ok) throw Error(result.error || 'Setup failed');
-      $('wifiPass').value = '';
-      $('wifiInfo').textContent = 'Connecting to router. Stay on the setup Wi-Fi for the result…';
-      clearInterval(wifiPoll);
-      wifiPoll = setInterval(async function () {
-        try {
-          var r = await fetch(target + '/wifi/status?k=' + encodeURIComponent(key), {signal:AbortSignal.timeout(4000)});
-          if (!r.ok) throw Error('Status unavailable');
-          var d = await r.json();
-          if (d.state === 'connected') {
-            clearInterval(wifiPoll);
-            $('wifiInfo').textContent = 'Saved! Rejoin your router Wi-Fi, then open http://' + d.ip + '. Normal relay control is ready.';
-            $('wifiReturn').href = 'http://' + d.ip;
-            $('wifiReturn').textContent = 'Open relay control at ' + d.ip;
-            $('wifiReturn').hidden = false;
-            store.set('nxu', 'http://' + d.ip);
-            $('wifiSave').disabled = false;
-          } else if (d.state === 'failed') {
-            clearInterval(wifiPoll);
-            $('wifiInfo').textContent = 'Could not join the router. Check name/password and 2.4 GHz coverage. Previous saved credentials are unchanged. Try again here.';
-            $('wifiSave').disabled = false;
-          }
-        } catch (e) { $('wifiInfo').textContent = 'Keep connected to NexusRelay-Setup to read the connection result.'; }
-      }, 1500);
-    } catch (e) {
-      $('wifiInfo').textContent = e.message + '. Join setup Wi-Fi and open http://192.168.4.1 if your hosted page is blocked by the browser.';
-      $('wifiSave').disabled = false;
-    }
-  });
   $('base').value = base;
   $('sens').value = sens;
   $('lang').value = lang;
@@ -874,9 +803,7 @@ function detectGesture(lm) {
   $('sheetWrap').addEventListener('click', function (e) { if (e.target === this) closeSheet(); });
 
   $('base').addEventListener('change', function () {
-    base = this.value.trim().replace(/\/+$/, '');
-    if (base && !/^https?:\/\//i.test(base)) base = 'http://' + base;
-    this.value = base;
+    base = this.value.trim();
     store.set('nxu', base);
     hb();
   });
